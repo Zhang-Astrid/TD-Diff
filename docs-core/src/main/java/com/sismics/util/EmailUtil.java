@@ -142,7 +142,7 @@ public class EmailUtil {
             email.setFrom(ConfigUtil.getConfigStringValue(ConfigType.SMTP_FROM), appName);
 
             // Locale (defined only by environment variable)
-            java.util.Locale userLocale = LocaleUtil.getLocale(System.getenv(Constants.DEFAULT_LANGUAGE_ENV));
+            Locale userLocale = LocaleUtil.getLocale(System.getenv(Constants.DEFAULT_LANGUAGE_ENV));
 
             // Subject and content
             email.setSubject(appName + " - " + subject);
@@ -176,7 +176,7 @@ public class EmailUtil {
      * @param paramMap Email parameters
      */
     public static void sendEmail(String templateName, UserDto recipientUser, Map<String, Object> paramMap) {
-        java.util.Locale userLocale = LocaleUtil.getLocale(System.getenv(Constants.DEFAULT_LANGUAGE_ENV));
+        Locale userLocale = LocaleUtil.getLocale(System.getenv(Constants.DEFAULT_LANGUAGE_ENV));
         String subject = MessageUtil.getMessage(userLocale, "email.template." + templateName + ".subject");
         sendEmail(templateName, recipientUser, subject, paramMap);
     }

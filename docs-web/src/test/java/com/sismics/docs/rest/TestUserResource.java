@@ -421,7 +421,7 @@ public class TestUserResource extends BaseJerseyTest {
         response = target().path("/user/totp1").request()
                 .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
                 .delete();
-        Assert.assertEquals(Response.Status.OK, Response.Status.fromStatusCode(response.getStatus()));
+        Assert.assertEquals(Status.OK, Status.fromStatusCode(response.getStatus()));
     }
 
     @Test
@@ -465,7 +465,7 @@ public class TestUserResource extends BaseJerseyTest {
                 .post(Entity.form(new Form()
                         .param("key", "no_such_key")
                         .param("password", "87654321")));
-        Assert.assertEquals(Response.Status.BAD_REQUEST, Response.Status.fromStatusCode(response.getStatus()));
+        Assert.assertEquals(Status.BAD_REQUEST, Status.fromStatusCode(response.getStatus()));
         json = response.readEntity(JsonObject.class);
         Assert.assertEquals("KeyNotFound", json.getString("type"));
 
@@ -474,7 +474,7 @@ public class TestUserResource extends BaseJerseyTest {
                 .post(Entity.form(new Form()
                         .param("key", key)
                         .param("password", " 1 ")));
-        Assert.assertEquals(Response.Status.BAD_REQUEST, Response.Status.fromStatusCode(response.getStatus()));
+        Assert.assertEquals(Status.BAD_REQUEST, Status.fromStatusCode(response.getStatus()));
         json = response.readEntity(JsonObject.class);
         Assert.assertEquals("ValidationError", json.getString("type"));
         Assert.assertTrue(json.getString("message"), json.getString("message").contains("password"));
@@ -491,7 +491,7 @@ public class TestUserResource extends BaseJerseyTest {
                 .post(Entity.form(new Form()
                         .param("key", key)
                         .param("password", "87654321")));
-        Assert.assertEquals(Response.Status.BAD_REQUEST, Response.Status.fromStatusCode(response.getStatus()));
+        Assert.assertEquals(Status.BAD_REQUEST, Status.fromStatusCode(response.getStatus()));
         json = response.readEntity(JsonObject.class);
         Assert.assertEquals("KeyNotFound", json.getString("type"));
 
@@ -499,6 +499,6 @@ public class TestUserResource extends BaseJerseyTest {
         response = target().path("/user/absent_minded").request()
                 .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
                 .delete();
-        Assert.assertEquals(Response.Status.OK, Response.Status.fromStatusCode(response.getStatus()));
+        Assert.assertEquals(Status.OK, Status.fromStatusCode(response.getStatus()));
     }
 }

@@ -44,7 +44,7 @@ public class ImageDeskew {
 
     // calculate the skew angle of the image cImage
     public double getSkewAngle() {
-        ImageDeskew.HoughLine[] hl;
+        HoughLine[] hl;
         double sum = 0.0;
         int count = 0;
 
@@ -66,14 +66,14 @@ public class ImageDeskew {
     }
 
     // calculate the count lines in the image with most points
-    private ImageDeskew.HoughLine[] getTop(int count) {
+    private HoughLine[] getTop(int count) {
 
-        ImageDeskew.HoughLine[] hl = new ImageDeskew.HoughLine[count];
+        HoughLine[] hl = new HoughLine[count];
         for (int i = 0; i < count; i++) {
-            hl[i] = new ImageDeskew.HoughLine();
+            hl[i] = new HoughLine();
         }
 
-        ImageDeskew.HoughLine tmp;
+        HoughLine tmp;
 
         for (int i = 0; i < (this.cHMatrix.length - 1); i++) {
             if (this.cHMatrix[i] > hl[count - 1].count) {

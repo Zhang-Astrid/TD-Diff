@@ -181,6 +181,15 @@ angular.module('docs',
         }
       }
     })
+    .state('settings.user.registrationRequests', {
+      url: '/registration-requests',
+      views: {
+        'user@settings.user': {
+          templateUrl: 'partial/docs/settings.user.registrationRequests.html',
+          controller: 'SettingsUserRegistrationRequests'
+        }
+      }
+    })
     .state('settings.workflow', {
       url: '/workflow',
       views: {
@@ -417,17 +426,26 @@ angular.module('docs',
           controller: 'GroupProfile'
         }
       }
+    })
+    .state('register', {
+      url: '/register',
+      views: {
+        'page': {
+          templateUrl: 'partial/docs/register.html',
+          controller: 'Register'
+        }
+      }
     });
 
   // Configuring Restangular
-  RestangularProvider.setBaseUrl('../api');
+  RestangularProvider.setBaseUrl('/docs-web/api');
 
   // Configuring Angular Translate
   $translateProvider
     .useSanitizeValueStrategy('escapeParameters')
     .useStaticFilesLoader({
       prefix: 'locale/',
-      suffix: '.json?@build.date@'
+      suffix: '.json'
     })
     .registerAvailableLanguageKeys(['en', 'es', 'pt', 'fr', 'de', 'el', 'ru', 'it', 'pl', 'zh_CN', 'zh_TW', 'sq_AL'], {
       'en_*': 'en',
@@ -441,7 +459,8 @@ angular.module('docs',
 	    'pl_*': 'pl',
       '*': 'en'
     })
-    .fallbackLanguage('en');
+    .fallbackLanguage('en')
+    .preferredLanguage('zh_CN');
 
   if (!_.isUndefined(localStorage.overrideLang)) {
     // Set the current language if an override is saved in local storage
@@ -573,6 +592,15 @@ angular.module('docs',
  */
 .run (function ($rootScope) {
   $rootScope.onboardingEnabled = false;
+})
+
+/**
+ * Handle document.view state transitions
+ */
+.run(function($transitions, $state) {
+  $transitions.onStart({ to: 'document.view' }, function(trans) {
+    return $state.target('document.view.content', trans.params());
+  });
 });
 
 if (location.search.indexOf("protractor") > -1) {

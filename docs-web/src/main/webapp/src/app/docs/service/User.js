@@ -22,7 +22,18 @@ angular.module('docs').factory('User', function(Restangular) {
      * Login an user.
      */
     login: function(user) {
-      return Restangular.one('user').post('login', user);
+      // return Restangular.one('user').post('login', user);
+      return Restangular.one('user').post('login', user).then(function(response) {
+        return response;
+      }, function(error) {
+        if(error.status === 403) {
+          error.data = {
+            type: 'LoginFailed',
+            message: 'Invalid username or password'
+          };
+        }
+        throw error;
+      });
     },
     
     /**

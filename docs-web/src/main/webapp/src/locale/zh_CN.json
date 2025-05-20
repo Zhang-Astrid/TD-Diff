@@ -8,6 +8,8 @@
     "remember_me": "记住我",
     "submit": "登录",
     "login_as_guest": "以游客身份登录",
+    "register": "注册",
+    "no_account": "没有账号？点击注册",
     "login_failed_title": "登录失败",
     "login_failed_message": "用户名或密码不正确",
     "password_lost_btn": "密码丢失？",
@@ -26,6 +28,19 @@
     "submit": "更改我的密码",
     "error_title": "密码更改出错",
     "error_message": "您的密码恢复请求已过期，请在登录页面上提交新的请求"
+  },
+  "register": {
+    "title": "用户注册",
+    "username": "用户名",
+    "password": "密码",
+    "email": "电子邮箱",
+    "storageQuota": "存储限额 (MB)",
+    "submit": "注册",
+    "success_title": "注册成功",
+    "success_message": "您的注册申请已提交成功，请等待管理员审核。",
+    "error_title": "注册失败",
+    "error_message": "注册失败，请稍后重试。",
+    "error_username_exists": "该用户名已被占用，请选择其他用户名。"
   },
   "index": {
     "toggle_navigation": "切换导航",
@@ -177,6 +192,12 @@
       "title": "共享文档",
       "message": "如果您想多次共享同一文档，请将共享命名.",
       "submit": "共享"
+    },
+    "translation": {
+      "select_language": "选择目标语言",
+      "translate": "翻译",
+      "result": "翻译结果",
+      "failed": "翻译失败，请重试"
     }
   },
   "file": {
@@ -223,7 +244,19 @@
       "related_links": "相关链接",
       "document_created": "文档由 {{ username }} 创建",
       "edit_user": "编辑 {{ username }} 用户"
-    }
+    },
+    "registration_requests": "注册申请管理",
+    "username": "用户名",
+    "email": "邮箱",
+    "create_date": "创建日期",
+    "action": "操作",
+    "approve": "通过",
+    "reject": "拒绝",
+    "no_registration_requests": "暂无待审核的注册申请。",
+    "approve_confirm_title": "通过注册",
+    "approve_confirm_message": "确定要通过 {{ username }} 的注册申请吗？",
+    "reject_confirm_title": "拒绝注册",
+    "reject_confirm_message": "确定要拒绝 {{ username }} 的注册申请吗？"
   },
   "usergroup": {
     "search_groups": "搜索群组",

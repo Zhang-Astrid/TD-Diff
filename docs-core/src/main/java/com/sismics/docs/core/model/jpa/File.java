@@ -250,4 +250,10 @@ public class File implements Loggable {
         }
         return name;
     }
+
+    // 返回文件的物理路径（根据你的实际存储结构调整）
+    public String getPath() {
+        // 文件存储目录 + 文件ID
+        return com.sismics.docs.core.util.DirectoryUtil.getStorageDirectory().resolve(this.getId()).toString();
+    }
 }

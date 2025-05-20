@@ -1,11 +1,11 @@
 <style>
   /* No navbar in login screen */
-  .navbar {
+  body.login-page .navbar {
     display: none;
   }
 
   /* Absolute positionned footer on top of the login background */
-  .footer {
+  body.login-page .footer {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -14,18 +14,41 @@
   }
 
   @media screen and (min-width: 768px) {
-    .footer {
+    body.login-page .footer {
       width: 50%;
     }
   }
 
-  /* Smaller links everywhere on login */
-  a {
+  body.login-page a {
     font-size: 90%;
     color: #666;
   }
+
+  /* 修复背景图片被挤到左边的问题 - 仅限登录页面 */
+  body.login-page .vertical-center {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body.login-page .login-img-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 50%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body.login-page .login-box {
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+  }
 </style>
-<div class="row vertical-center">
+<div class="row vertical-center" force-refresh>
   <div class="col-sm-6 col-xs-12 login-box">
     <div class="row">
       <div class="col-lg-offset-4 col-lg-4 col-xs-offset-1 col-xs-10">
@@ -33,51 +56,57 @@
 
         <form>
           <div class="form-group">
-            <label class="sr-only" for="inputUsername">{{ 'login.username' | translate }}</label>
+            <label class="sr-only" for="inputUsername">{{ translate('login.username') }}</label>
             <input class="form-control" type="text" id="inputUsername" name="username"
-                   ng-attr-placeholder="{{ 'login.username' | translate }}" ng-model="user.username" />
+                   ng-attr-placeholder="{{ translate('login.username') }}" ng-model="user.username" />
           </div>
 
           <div class="form-group">
-            <label class="sr-only" for="inputPassword">{{ 'login.password' | translate }}</label>
+            <label class="sr-only" for="inputPassword">{{ translate('login.password') }}</label>
             <input class="form-control" type="password" id="inputPassword" name="password"
-                   ng-attr-placeholder="{{ 'login.password' | translate }}" ng-model="user.password" />
+                   ng-attr-placeholder="{{ translate('login.password') }}" ng-model="user.password" />
           </div>
 
           <span class="help-block" ng-if="codeRequired">
-            {{ 'login.validation_code_required' | translate }}
-            <span class="fas fa-question-circle" title="{{ 'login.validation_code_title' | translate }}"></span>
+            {{ translate('login.validation_code_required') }}
+            <span class="fas fa-question-circle" title="{{ translate('login.validation_code_title') }}"></span>
           </span>
           <div class="form-group" ng-if="codeRequired">
-            <label class="sr-only" for="inputCode">{{ 'login.validation_code' | translate }}</label>
+            <label class="sr-only" for="inputCode">{{ translate('login.validation_code') }}</label>
             <input class="form-control" type="text" id="inputCode" name="code"
-                   ng-attr-placeholder="{{ 'login.validation_code' | translate }}" ng-model="user.code" />
-          </div>
-
-          <div class="checkbox text-muted">
-            <label>
-              <input type="checkbox" ng-model="user.remember" name="remember" /> {{ 'login.remember_me' | translate }}
-            </label>
+                   ng-attr-placeholder="{{ translate('login.validation_code') }}" ng-model="user.code" />
           </div>
 
           <div class="row">
             <div class="col-md-6">
               <button type="submit" class="btn btn-primary" ng-click="login()">
-                <span class="fas fa-check"></span> {{ 'login.submit' | translate }}
+                <span class="fas fa-check"></span> {{ translate('login.submit') }}
               </button>
             </div>
+            <div class="col-md-6 text-right" style="display: block !important; visibility: visible !important;">
+              <button type="button" class="btn btn-success" style="display: inline-block !important; visibility: visible !important; opacity: 1 !important; background-color: #5cb85c !important; color: white !important; font-weight: bold;" onclick="window.location.href='#/register';">
+                <span class="fas fa-user-plus"></span> 注册
+              </button>
+            </div>
+          </div>
 
-            <div class="col-md-6 text-right btn-password-lost">
-              <div class="well-sm">
-                <a href ng-click="openPasswordLost()">{{ 'login.password_lost_btn' | translate }}</a>
+          <div class="row" style="margin-top: 10px;">
+            <div class="col-md-6">
+              <div class="checkbox text-muted">
+                <label>
+                  <input type="checkbox" ng-model="user.remember" name="remember" /> {{ translate('login.remember_me') }}
+                </label>
               </div>
+            </div>
+            <div class="col-md-6 text-right">
+              <a href ng-click="openPasswordLost()">{{ translate('login.password_lost_btn') }}</a>
             </div>
           </div>
 
           <p class="text-center" ng-if="app.guest_login">&nbsp;</p>
 
           <button type="submit" class="btn btn-default btn-block" ng-if="app.guest_login" ng-click="loginAsGuest()">
-            <span class="fas fa-user"></span> {{ 'login.login_as_guest' | translate }}
+            <span class="fas fa-user"></span> {{ translate('login.login_as_guest') }}
           </button>
         </form>
       </div>
