@@ -1,31 +1,31 @@
 <div class="row">
-    <div class="col-md-4 col-md-offset-4">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h3 class="panel-title">{{ translate('register.title') }}</h3>
-        </div>
-        <div class="panel-body">
-          <form name="registerForm" ng-submit="register()" novalidate>
-            <div class="form-group">
-              <label for="inputUsername">{{ translate('register.username') }}</label>
-              <input type="text" class="form-control" id="inputUsername" name="username" required ng-model="user.username">
-            </div>
-            <div class="form-group">
-              <label for="inputPassword">{{ translate('register.password') }}</label>
-              <input type="password" class="form-control" id="inputPassword" name="password" required ng-model="user.password">
-            </div>
-            <div class="form-group">
-              <label for="inputEmail">{{ translate('register.email') }}</label>
-              <input type="email" class="form-control" id="inputEmail" name="email" required ng-model="user.email">
-            </div>
-            <div class="form-group">
-              <label for="inputStorageQuota">{{ translate('register.storageQuota') }}</label>
-              <input type="number" class="form-control" id="inputStorageQuota" name="storageQuota" ng-model="user.storageQuota" placeholder="{{ translate('register.storageQuota') }}">
-            </div>
-            <button type="submit" class="btn btn-primary">{{ translate('register.submit') }}</button>
-            <a href="#/login" class="btn btn-default pull-right">{{ translate('register.login') }}</a>
-          </form>
-        </div>
+  <div class="col-md-4 col-md-offset-4">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">{{ 'register.title'|translate }}</h3>
+      </div>
+      <div class="panel-body">
+        <form name="registerForm" ng-submit="register()" novalidate>
+          <div class="form-group">
+            <label for="inputUsername">{{ 'register.username'|translate  }}</label>
+            <input type="text" class="form-control" id="inputUsername" name="username" required ng-model="user.username">
+          </div>
+          <div class="form-group">
+            <label for="inputPassword">{{ 'register.password'|translate  }}</label>
+            <input type="password" class="form-control" id="inputPassword" name="password" required ng-model="user.password">
+          </div>
+          <div class="form-group">
+            <label for="inputEmail">{{'register.email'|translate  }}</label>
+            <input type="email" class="form-control" id="inputEmail" name="email" required ng-model="user.email">
+          </div>
+          <div class="form-group">
+            <label for="inputStorageQuota">{{'register.storageQuota'|translate  }}</label>
+            <input type="number" class="form-control" id="inputStorageQuota" name="storageQuota" ng-model="user.storageQuota" placeholder="{{ translate('register.storageQuota') }}">
+          </div>
+          <button type="submit" class="btn btn-primary">{{ 'register.submit'|translate  }}</button>
+<!--          <a href="#/login" class="btn btn-default pull-right">{{ translate('register.login') }}</a>-->
+        </form>
       </div>
     </div>
-  </div> 
+  </div>
+</div>

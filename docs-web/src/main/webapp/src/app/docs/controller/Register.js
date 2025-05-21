@@ -67,4 +67,4 @@ angular.module('docs').controller('Register', ['$scope', '$state', '$dialog', '$
             });
         };
     }
-]); 
+]);

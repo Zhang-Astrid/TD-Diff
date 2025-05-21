@@ -40,11 +40,7 @@ import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -54,8 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Path("/user")
 public class UserResource extends BaseResource {
-    private static final Map<String, RegistrationRequest> pendingRequests = new ConcurrentHashMap<>();
-
+    private static final Map<String, Register> pendingRequests = new ConcurrentHashMap<>();
     /**
      * Creates a new user.
      *
@@ -81,6 +76,7 @@ public class UserResource extends BaseResource {
      * @return Response
      */
     @PUT
+    // !!!Register
     public Response register(
         @FormParam("username") String username,
         @FormParam("password") String password,
@@ -98,8 +94,6 @@ public class UserResource extends BaseResource {
         email = ValidationUtil.validateLength(email, "email", 1, 100);
         Long storageQuota = ValidationUtil.validateLong(storageQuotaStr, "storage_quota");
         ValidationUtil.validateEmail(email, "email");
-        
-        System.out.println("username=" + username + ", password=" + password + ", email=" + email + ", storageQuota=" + storageQuota);
         
         // Create the user
         User user = new User();
@@ -125,6 +119,210 @@ public class UserResource extends BaseResource {
         // Always return OK
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("status", "ok");
+        return Response.ok().entity(response.build()).build();
+    }
+
+
+    /**
+     * Creates a new registration request.
+     *
+     * @api {post} /user/register Request registration
+     * @apiName PostUserRegister
+     * @apiGroup User
+     * @apiParam {String{3..50}} username Username
+     * @apiParam {String{8..50}} password Password
+     * @apiParam {String{1..100}} email E-mail
+     * @apiParam {Number} storage_quota Storage quota (in bytes)
+     * @apiSuccess {String} status Status OK
+     * @apiError (client) ValidationError Validation error
+     * @apiError (client) AlreadyExistingUsername Login already used
+     * @apiPermission none
+     * @apiVersion 1.5.0
+     *
+     * @param username User's username
+     * @param password Password
+     * @param email E-Mail
+     * @param storageQuota Storage quota (in bytes)
+     * @return Response
+     */
+    @POST
+    @Path("register")
+    public Response register(
+            @FormParam("username") String username,
+            @FormParam("password") String password,
+            @FormParam("email") String email,
+            @FormParam("storage_quota") Long storageQuota) {
+        // Validate the input data
+        username = ValidationUtil.validateLength(username, "username", 3, 50);
+        ValidationUtil.validateUsername(username, "username");
+        password = ValidationUtil.validateLength(password, "password", 8, 50);
+        email = ValidationUtil.validateLength(email, "email", 1, 100);
+        ValidationUtil.validateEmail(email, "email");
+        // 设置默认值为10
+        if (storageQuota == null) {
+            storageQuota = 10000000L;
+        }
+        System.out.println("register called: username=" + username + ", password=" + password + ", email=" + email + ", storageQuota=" + storageQuota);
+        // Check if username already exists
+        UserDao userDao = new UserDao();
+        if (userDao.getActiveByUsername(username) != null) {
+            throw new ClientException("AlreadyExistingUsername", "Login already used");
+        }
+        // Check if there's already a pending request
+        if (pendingRequests.containsKey(username)) {
+            throw new ClientException("AlreadyExistingRequest", "A registration request is already pending for this username");
+        }
+
+        // Create the registration request
+        Register request = new Register();
+        request.setId(UUID.randomUUID().toString());
+        request.setUsername(username);
+        request.setPassword(password);
+        request.setEmail(email);
+        request.setStorageQuota(storageQuota);
+        request.setStatus("PENDING");
+        request.setCreateDate(new Date());
+
+        // Store the request in memory
+        pendingRequests.put(username, request);
+
+        // Return success with pending status
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("status", "ok")
+                .add("message", "Registration request submitted. Please wait for admin approval.");
+        return Response.ok().entity(response.build()).build();
+    }
+
+    /**
+     * Approves or rejects a registration request.
+     *
+     * @api {post} /user/register/:id Approve/reject registration request
+     * @apiName PostUserRegisterId
+     * @apiGroup User
+     * @apiParam {String} action Action (approve/reject)
+     * @apiSuccess {String} status Status OK
+     * @apiError (client) ForbiddenError Access denied
+     * @apiError (client) ValidationError Validation error
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @param id Request ID
+     * @param action Action
+     * @return Response
+     */
+    @POST
+    @Path("register/{id: [a-z0-9\\-]+}")
+    public Response RegisterHandler(
+            @PathParam("id") String id,
+            @FormParam("action") String action) {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+        // Validate action
+        if (!"approve".equals(action) && !"reject".equals(action)) {
+            throw new ClientException("ValidationError", "Invalid action");
+        }
+        // Find the request
+        Register request = null;
+        for (Register req : pendingRequests.values()) {
+            if (req.getId().equals(id)) {
+                request = req;
+                break;
+            }
+        }
+        if (request == null) {
+            throw new ClientException("ValidationError", "Request not found");
+        }
+        if ("approve".equals(action)) {
+            // Create the user
+            User user = new User();
+            user.setRoleId(Constants.DEFAULT_USER_ROLE);
+            user.setUsername(request.getUsername());
+            user.setPassword(request.getPassword());
+            user.setEmail(request.getEmail());
+            user.setStorageQuota(request.getStorageQuota());
+            user.setOnboarding(true);
+            UserDao userDao = new UserDao();
+            try {
+                userDao.create(user, principal.getId());
+            } catch (Exception e) {
+                if ("AlreadyExistingUsername".equals(e.getMessage())) {
+                    throw new ClientException("AlreadyExistingUsername", "Login already used", e);
+                } else {
+                    throw new ServerException("UnknownError", "Unknown server error", e);
+                }
+            }
+        }
+        // Remove the request
+        pendingRequests.remove(request.getUsername());
+        // Return success
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("status", "ok");
+        return Response.ok().entity(response.build()).build();
+    }
+
+    @GET
+    @Path("register/status/{username}")
+    public Response queryRegistrationStatusByUsername(@PathParam("username") String username) {
+        Register request = pendingRequests.get(username);
+        if (request == null) {
+            throw new ClientException("RequestNotFound", "No registration request found for this username");
+        }
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("status", request.getStatus())
+                .add("message", mapStatusToMessage(request.getStatus()));
+        return Response.ok().entity(response.build()).build();
+    }
+
+    private String mapStatusToMessage(String status) {
+        switch (status) {
+            case "PENDING":
+                return "Your registration request is pending admin approval.";
+            case "APPROVED":
+                return "Your registration request has been approved. You can now login.";
+            case "REJECTED":
+                return "Your registration request has been rejected. Please contact the administrator.";
+            default:
+                return "Unknown status.";
+        }
+    }
+
+    /**
+     * Gets all pending registration requests.
+     *
+     * @api {get} /user/register Get pending registration requests
+     * @apiName GetUserRegister
+     * @apiGroup User
+     * @apiSuccess {Object[]} requests List of registration requests
+     * @apiSuccess {String} requests.id Request ID
+     * @apiSuccess {String} requests.username Username
+     * @apiSuccess {String} requests.email Email
+     * @apiSuccess {String} requests.createDate Creation date
+     * @apiError (client) ForbiddenError Access denied
+     * @apiPermission admin
+     * @apiVersion 1.5.0
+     *
+     * @return Response
+     */
+    @GET
+    @Path("register")
+    public Response getRegisterRequests() {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        JsonArrayBuilder requestsArray = Json.createArrayBuilder();
+        for (Register request : pendingRequests.values()) {
+            requestsArray.add(Json.createObjectBuilder()
+                    .add("id", request.getId())
+                    .add("username", request.getUsername())
+                    .add("email", request.getEmail())
+                    .add("createDate", request.getCreateDate().getTime()));
+        }
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("requests", requestsArray);
         return Response.ok().entity(response.build()).build();
     }
 
@@ -1109,191 +1307,6 @@ public class UserResource extends BaseResource {
     }
 
     /**
-     * Creates a new registration request.
-     *
-     * @api {post} /user/register Request registration
-     * @apiName PostUserRegister
-     * @apiGroup User
-     * @apiParam {String{3..50}} username Username
-     * @apiParam {String{8..50}} password Password
-     * @apiParam {String{1..100}} email E-mail
-     * @apiParam {Number} storage_quota Storage quota (in bytes)
-     * @apiSuccess {String} status Status OK
-     * @apiError (client) ValidationError Validation error
-     * @apiError (client) AlreadyExistingUsername Login already used
-     * @apiPermission none
-     * @apiVersion 1.5.0
-     *
-     * @param username User's username
-     * @param password Password
-     * @param email E-Mail
-     * @param storageQuota Storage quota (in bytes)
-     * @return Response
-     */
-    @POST
-    @Path("register")
-    public Response register(
-        @FormParam("username") String username,
-        @FormParam("password") String password,
-        @FormParam("email") String email,
-        @FormParam("storage_quota") Long storageQuota) {
-        // Validate the input data
-        username = ValidationUtil.validateLength(username, "username", 3, 50);
-        ValidationUtil.validateUsername(username, "username");
-        password = ValidationUtil.validateLength(password, "password", 8, 50);
-        email = ValidationUtil.validateLength(email, "email", 1, 100);
-        ValidationUtil.validateEmail(email, "email");
-        // 设置默认值为10
-        if (storageQuota == null) {
-            storageQuota = 10000000L;
-        }
-        System.out.println("register called: username=" + username + ", password=" + password + ", email=" + email + ", storageQuota=" + storageQuota);
-        // Check if username already exists
-        UserDao userDao = new UserDao();
-        if (userDao.getActiveByUsername(username) != null) {
-            throw new ClientException("AlreadyExistingUsername", "Login already used");
-        }
-        // Check if there's already a pending request
-        if (pendingRequests.containsKey(username)) {
-            throw new ClientException("AlreadyExistingRequest", "A registration request is already pending for this username");
-        }
-        
-        // Create the registration request
-        RegistrationRequest request = new RegistrationRequest();
-        request.setId(UUID.randomUUID().toString());
-        request.setUsername(username);
-        request.setPassword(password);
-        request.setEmail(email);
-        request.setStorageQuota(storageQuota);
-        request.setStatus("PENDING");
-        request.setCreateDate(new Date());
-        
-        // Store the request in memory
-        pendingRequests.put(username, request);
-        
-        // Return success with pending status
-        JsonObjectBuilder response = Json.createObjectBuilder()
-                .add("status", "ok")
-                .add("message", "Registration request submitted. Please wait for admin approval.");
-        return Response.ok().entity(response.build()).build();
-    }
-
-    /**
-     * Gets all pending registration requests.
-     *
-     * @api {get} /user/register Get pending registration requests
-     * @apiName GetUserRegister
-     * @apiGroup User
-     * @apiSuccess {Object[]} requests List of registration requests
-     * @apiSuccess {String} requests.id Request ID
-     * @apiSuccess {String} requests.username Username
-     * @apiSuccess {String} requests.email Email
-     * @apiSuccess {String} requests.createDate Creation date
-     * @apiError (client) ForbiddenError Access denied
-     * @apiPermission admin
-     * @apiVersion 1.5.0
-     *
-     * @return Response
-     */
-    @GET
-    @Path("register")
-    public Response getRegistrationRequests() {
-        if (!authenticate()) {
-            throw new ForbiddenClientException();
-        }
-        checkBaseFunction(BaseFunction.ADMIN);
-        
-        JsonArrayBuilder requestsArray = Json.createArrayBuilder();
-        for (RegistrationRequest request : pendingRequests.values()) {
-            requestsArray.add(Json.createObjectBuilder()
-                    .add("id", request.getId())
-                    .add("username", request.getUsername())
-                    .add("email", request.getEmail())
-                    .add("createDate", request.getCreateDate().getTime()));
-        }
-        
-        JsonObjectBuilder response = Json.createObjectBuilder()
-                .add("requests", requestsArray);
-        return Response.ok().entity(response.build()).build();
-    }
-
-    /**
-     * Approves or rejects a registration request.
-     *
-     * @api {post} /user/register/:id Approve/reject registration request
-     * @apiName PostUserRegisterId
-     * @apiGroup User
-     * @apiParam {String} action Action (approve/reject)
-     * @apiSuccess {String} status Status OK
-     * @apiError (client) ForbiddenError Access denied
-     * @apiError (client) ValidationError Validation error
-     * @apiPermission admin
-     * @apiVersion 1.5.0
-     *
-     * @param id Request ID
-     * @param action Action
-     * @return Response
-     */
-    @POST
-    @Path("register/{id: [a-z0-9\\-]+}")
-    public Response handleRegistrationRequest(
-        @PathParam("id") String id,
-        @FormParam("action") String action) {
-        if (!authenticate()) {
-            throw new ForbiddenClientException();
-        }
-        checkBaseFunction(BaseFunction.ADMIN);
-        
-        // Validate action
-        if (!"approve".equals(action) && !"reject".equals(action)) {
-            throw new ClientException("ValidationError", "Invalid action");
-        }
-        
-        // Find the request
-        RegistrationRequest request = null;
-        for (RegistrationRequest req : pendingRequests.values()) {
-            if (req.getId().equals(id)) {
-                request = req;
-                break;
-            }
-        }
-        
-        if (request == null) {
-            throw new ClientException("ValidationError", "Request not found");
-        }
-        
-        if ("approve".equals(action)) {
-            // Create the user
-            User user = new User();
-            user.setRoleId(Constants.DEFAULT_USER_ROLE);
-            user.setUsername(request.getUsername());
-            user.setPassword(request.getPassword());
-            user.setEmail(request.getEmail());
-            user.setStorageQuota(request.getStorageQuota());
-            user.setOnboarding(true);
-            
-            UserDao userDao = new UserDao();
-            try {
-                userDao.create(user, principal.getId());
-            } catch (Exception e) {
-                if ("AlreadyExistingUsername".equals(e.getMessage())) {
-                    throw new ClientException("AlreadyExistingUsername", "Login already used", e);
-                } else {
-                    throw new ServerException("UnknownError", "Unknown server error", e);
-                }
-            }
-        }
-        
-        // Remove the request
-        pendingRequests.remove(request.getUsername());
-        
-        // Return success
-        JsonObjectBuilder response = Json.createObjectBuilder()
-                .add("status", "ok");
-        return Response.ok().entity(response.build()).build();
-    }
-
-    /**
      * Returns the authentication token value.
      *
      * @return Token value
@@ -1334,31 +1347,4 @@ public class UserResource extends BaseResource {
         }
     }
 
-    @GET
-    @Path("register/status/{username}")
-    public Response getRegistrationStatus(@PathParam("username") String username) {
-        RegistrationRequest request = pendingRequests.get(username);
-        
-        if (request == null) {
-            throw new ClientException("RequestNotFound", "No registration request found for this username");
-        }
-        
-        JsonObjectBuilder response = Json.createObjectBuilder()
-                .add("status", request.getStatus())
-                .add("message", getStatusMessage(request.getStatus()));
-        return Response.ok().entity(response.build()).build();
-    }
-
-    private String getStatusMessage(String status) {
-        switch (status) {
-            case "PENDING":
-                return "Your registration request is pending admin approval.";
-            case "APPROVED":
-                return "Your registration request has been approved. You can now login.";
-            case "REJECTED":
-                return "Your registration request has been rejected. Please contact the administrator.";
-            default:
-                return "Unknown status.";
-        }
-    }
 }

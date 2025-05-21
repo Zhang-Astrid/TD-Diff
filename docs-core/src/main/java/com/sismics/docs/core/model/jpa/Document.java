@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.Date;
-import java.util.List;
 
 /**
  * Document entity.
@@ -268,9 +267,5 @@ public class Document implements Loggable {
     @Override
     public String toMessage() {
         return title;
-    }
-
-    public boolean hasReadAccess(List<String> targetIdList) {
-        return true;
     }
 }

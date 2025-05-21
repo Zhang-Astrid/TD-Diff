@@ -1,217 +1,180 @@
-// A1
 package com.sismics.docs.core.service;
 
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
+import com.google.common.base.Strings;
+import com.sismics.docs.core.constant.Constants;
+import com.sismics.docs.core.dao.FileDao;
+import com.sismics.docs.core.model.jpa.File;
+import com.sismics.docs.core.util.DirectoryUtil;
+import com.sismics.docs.core.util.EncryptionUtil;
+import com.sismics.docs.core.util.FileUtil;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.HashMap;
-import java.util.Map;
+import java.security.NoSuchAlgorithmException;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
- * Translation service using Baidu Cloud Translation API.
+ * Translation service.
  */
 public class TranslationService {
     private static final Logger log = LoggerFactory.getLogger(TranslationService.class);
-    
-    private static final String BAIDU_TRANSLATE_API_URL = "https://fanyi-api.baidu.com/api/trans/vip/translate";
-    private static final String BAIDU_APP_ID = "20250513002355906";
-    private static final String BAIDU_SECRET_KEY = "XgMt3CWruNY_ycgmGTh0";
-    private static final int MAX_TEXT_LENGTH = 2000;
-    private static final double MIN_VALID_CHAR_RATIO = 0.3; // 降低有效字符比例要求
-    private static final int MIN_TEXT_LENGTH = 10;
-    private static final double MAX_BINARY_RATIO = 0.7; // 二进制字符比例阈值
-
-    private String preprocessText(String text) {
-        if (text == null || text.isEmpty()) {
-            return text;
-        }
-
-        // 检查二进制字符比例
-        int binaryChars = 0;
-        for (char c : text.toCharArray()) {
-            if (c < 32 || c > 126) {
-                binaryChars++;
-            }
-        }
-        double binaryRatio = (double) binaryChars / text.length();
-        log.info("[translate] Binary character ratio: {}", binaryRatio);
-
-        if (binaryRatio > MAX_BINARY_RATIO) {
-            log.error("[translate] Too many binary characters, ratio: {}", binaryRatio);
-            return null;
-        }
-
-        // 移除控制字符和规范化空白字符
-        text = text.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]", "")
-                  .replaceAll("\\s+", " ")
-                  .trim();
-
-        // 验证文本质量
-        if (!isValidText(text)) {
-            log.error("[translate] Text validation failed after preprocessing");
-            return null;
-        }
-
-        return text;
-    }
-
-    private boolean isValidText(String text) {
-        if (text == null || text.isEmpty()) {
-            return false;
-        }
-        
-        // 计算有效字符的比例
-        int validChars = 0;
-        int totalChars = text.length();
-        
-        for (char c : text.toCharArray()) {
-            if (Character.isLetterOrDigit(c) || 
-                Character.isWhitespace(c) || 
-                (c >= 0x4E00 && c <= 0x9FFF) || // 中文字符
-                (c >= 0xFF00 && c <= 0xFFEF) || // 全角字符
-                (c >= 0x3000 && c <= 0x303F) || // 中文标点
-                (c >= 0x2000 && c <= 0x206F) || // 通用标点
-                (c >= 32 && c <= 126)) { // 可打印ASCII字符
-                validChars++;
-            }
-        }
-        
-        double ratio = (double) validChars / totalChars;
-        log.info("[translate] Text validation - Valid chars: {}, Total chars: {}, Ratio: {}", 
-                validChars, totalChars, ratio);
-        
-        return ratio >= MIN_VALID_CHAR_RATIO && text.length() >= MIN_TEXT_LENGTH;
-    }
+    private static final String BAIDU_APP_ID = "20250521002362139";
+    private static final String BAIDU_SECRET_KEY = "QeS7E6KwPzuyeu2V5LgM";
+    private static final String BAIDU_TRANSLATE_URL = "https://fanyi-api.baidu.com/api/trans/vip/translate";
 
     /**
-     * Translate text using Baidu Cloud Translation API.
+     * Translate a file.
      *
-     * @param text Text to translate
-     * @param targetLanguage Target language code (e.g., "en", "zh")
-     * @return Translated text
-     * @throws Exception If translation fails
+     * @param fileId File ID
+     * @param targetLanguage Target language
+     * @param userId User ID
+     * @return Translated File object
+     * @throws Exception if translation fails or file not found/invalid
      */
-    public String translate(String text, String targetLanguage) throws Exception {
-        if (text == null || text.isEmpty()) {
-            return text;
-        }
-
-        // 预处理文本
-        text = preprocessText(text);
-        if (text == null) {
-            throw new Exception("Invalid text content - text validation failed");
-        }
-
-        log.info("[translate] Translating text length: {}, target language: {}", text.length(), targetLanguage);
-
-        // 如果文本长度超过限制，分段翻译
-        if (text.length() > MAX_TEXT_LENGTH) {
-            log.info("[translate] Text exceeds maximum length, splitting into chunks");
-            StringBuilder result = new StringBuilder();
-            int startIndex = 0;
-            
-            while (startIndex < text.length()) {
-                int endIndex = Math.min(startIndex + MAX_TEXT_LENGTH, text.length());
-                // 找到最后一个完整句子的结束位置
-                if (endIndex < text.length()) {
-                    int lastPeriod = text.lastIndexOf(".", endIndex);
-                    int lastQuestion = text.lastIndexOf("?", endIndex);
-                    int lastExclamation = text.lastIndexOf("!", endIndex);
-                    int lastNewline = text.lastIndexOf("\n", endIndex);
-                    int lastChinesePeriod = text.lastIndexOf("。", endIndex);
-                    int lastChineseQuestion = text.lastIndexOf("？", endIndex);
-                    int lastChineseExclamation = text.lastIndexOf("！", endIndex);
-                    
-                    int lastBreak = Math.max(
-                        Math.max(Math.max(lastPeriod, lastQuestion), Math.max(lastExclamation, lastNewline)),
-                        Math.max(Math.max(lastChinesePeriod, lastChineseQuestion), lastChineseExclamation)
-                    );
-                    
-                    if (lastBreak > startIndex) {
-                        endIndex = lastBreak + 1;
-                    }
-                }
-                
-                String chunk = text.substring(startIndex, endIndex);
-                String translatedChunk = translateChunk(chunk, targetLanguage);
-                result.append(translatedChunk);
-                
-                startIndex = endIndex;
-                
-                // 添加适当的间隔
-                if (startIndex < text.length()) {
-                    result.append(" ");
-                }
-            }
-            
-            return result.toString();
-        }
+    public File translateFile(String fileId, String targetLanguage, String userId) throws Exception {
+        log.info("Starting translation process for fileId: {}, targetLanguage: {}, userId: {}", fileId, targetLanguage, userId);
         
-        return translateChunk(text, targetLanguage);
+        // Get the file
+        log.info("Step 1: Retrieving file from database");
+        FileDao fileDao = new FileDao();
+        File file = fileDao.getFile(fileId);
+        if (file == null) {
+            log.error("File not found with id: {}", fileId);
+            throw new IllegalArgumentException("File not found");
+        }
+        log.info("File retrieved successfully: {}", file.getName());
+
+        // Check if the file is a PDF
+        log.info("Step 2: Validating file type");
+        if (!file.getMimeType().equals("application/pdf")) {
+            log.error("Invalid file type: {}. Only PDF files can be translated", file.getMimeType());
+            throw new IllegalArgumentException("Only PDF files can be translated");
+        }
+        log.info("File type validation passed");
+
+        // Get the file content
+        log.info("Step 3: Reading file content");
+        Path storedFile = DirectoryUtil.getStorageDirectory().resolve(fileId);
+        Path unencryptedFile = EncryptionUtil.decryptFile(storedFile, userId);
+        log.info("File content read successfully");
+
+        // Extract text from PDF
+        log.info("Step 4: Extracting text from PDF");
+        String text;
+        try (PDDocument document = PDDocument.load(unencryptedFile.toFile())) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            text = stripper.getText(document);
+            log.info("Text extraction completed. Text length: {} characters", text.length());
+        } catch (Exception e) {
+            log.error("Error extracting text from PDF", e);
+            throw e;
+        }
+
+        // 调用百度翻译API
+        log.info("Step 5: Calling Baidu Translation API");
+        String translatedText;
+        try {
+            translatedText = translateWithBaidu(text, targetLanguage);
+            log.info("Translation completed successfully. Translated text length: {} characters", translatedText.length());
+        } catch (Exception e) {
+            log.error("Error during translation", e);
+            throw e;
+        }
+
+        // Create a new file for the translation
+        log.info("Step 6: Creating new translated file");
+        String translatedFileId = UUID.randomUUID().toString();
+        Path translatedFile = DirectoryUtil.getStorageDirectory().resolve(translatedFileId);
+        Files.write(translatedFile, translatedText.getBytes());
+        log.info("New file created with id: {}", translatedFileId);
+
+        // Create the file record
+        log.info("Step 7: Creating file record in database");
+        File translatedFileRecord = new File();
+        translatedFileRecord.setId(translatedFileId);
+        translatedFileRecord.setName(file.getName() + " (" + targetLanguage + ")");
+        translatedFileRecord.setMimeType(file.getMimeType());
+        translatedFileRecord.setSize(Files.size(translatedFile));
+        translatedFileRecord.setDocumentId(file.getDocumentId());
+        translatedFileRecord.setUserId(userId);
+        fileDao.create(translatedFileRecord, userId);
+        log.info("File record created successfully");
+
+        log.info("Translation process completed successfully");
+        return translatedFileRecord;
     }
 
-    private String translateChunk(String text, String targetLanguage) throws Exception {
-        // 生成签名
+    private String translateWithBaidu(String text, String targetLanguage) throws Exception {
+        log.info("Preparing Baidu translation request for language: {}", targetLanguage);
         String salt = String.valueOf(System.currentTimeMillis());
-        String sign = generateSign(text, salt);
+        String sign = generateBaiduSign(text, salt);
+        StringBuilder requestParams = new StringBuilder();
+        requestParams.append("q=").append(URLEncoder.encode(text, StandardCharsets.UTF_8));
+        requestParams.append("&from=auto");
+        requestParams.append("&to=").append(getBaiduLanguageCode(targetLanguage));
+        requestParams.append("&appid=").append(BAIDU_APP_ID);
+        requestParams.append("&salt=").append(salt);
+        requestParams.append("&sign=").append(sign);
 
-        // 构建请求参数
-        Map<String, String> params = new HashMap<>();
-        params.put("q", text);
-        params.put("from", "auto");
-        params.put("to", targetLanguage);
-        params.put("appid", BAIDU_APP_ID);
-        params.put("salt", salt);
-        params.put("sign", sign);
+        log.info("Sending request to Baidu Translation API");
+        URL url = new URL(BAIDU_TRANSLATE_URL + "?" + requestParams.toString());
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
 
-        log.info("[translate] Sending request to Baidu API for chunk length: {}", text.length());
-        
-        // 发送请求
-        String response = sendRequest(params);
-        
-        // 解析响应
-        try {
-            JSONObject jsonResponse = new JSONObject(response);
+        int responseCode = conn.getResponseCode();
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            log.error("Baidu API error response code: {}", responseCode);
+            throw new IOException("Baidu Translate API error: " + responseCode);
+        }
+
+        log.info("Reading API response");
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            JSONObject jsonResponse = new JSONObject(response.toString());
+            
             if (jsonResponse.has("error_code")) {
                 String errorCode = jsonResponse.getString("error_code");
                 String errorMsg = jsonResponse.getString("error_msg");
-                log.error("[translate] Baidu API error: {} - {}", errorCode, errorMsg);
-                throw new Exception("Translation error: " + errorCode + " - " + errorMsg);
-            }
-
-            if (!jsonResponse.has("trans_result")) {
-                log.error("[translate] Invalid response format: missing trans_result. Response: {}", response);
-                throw new Exception("Invalid response format from translation API");
+                log.error("Baidu API error: {} - {}", errorCode, errorMsg);
+                throw new IOException("Baidu Translate API error: " + errorCode + " - " + errorMsg);
             }
 
             JSONArray transResult = jsonResponse.getJSONArray("trans_result");
-            if (transResult.length() == 0) {
-                log.error("[translate] No translation result in response: {}", response);
-                throw new Exception("No translation result");
+            if (transResult.length() > 0) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < transResult.length(); i++) {
+                    sb.append(transResult.getJSONObject(i).getString("dst"));
+                    if (i < transResult.length() - 1) {
+                        sb.append("\n");
+                    }
+                }
+                log.info("Translation completed successfully");
+                return sb.toString();
             }
-
-            String translatedText = transResult.getJSONObject(0).getString("dst");
-            log.info("[translate] Successfully translated chunk, result length: {}", translatedText.length());
-            return translatedText;
-        } catch (JSONException e) {
-            log.error("[translate] Error parsing response: {} - Response: {}", e.getMessage(), response);
-            throw new Exception("Error parsing translation response: " + e.getMessage());
+            log.error("No translation result found in API response");
+            throw new IOException("No translation result found");
         }
     }
 
-    private String generateSign(String text, String salt) throws Exception {
+    private String generateBaiduSign(String text, String salt) throws Exception {
         String str = BAIDU_APP_ID + text + salt + BAIDU_SECRET_KEY;
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] bytes = md.digest(str.getBytes(StandardCharsets.UTF_8));
@@ -222,73 +185,33 @@ public class TranslationService {
         return sb.toString();
     }
 
-    private String sendRequest(Map<String, String> params) throws IOException {
-        StringBuilder postData = new StringBuilder();
-        for (Map.Entry<String, String> param : params.entrySet()) {
-            if (postData.length() != 0) {
-                postData.append('&');
-            }
-            postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
-            postData.append('=');
-            postData.append(URLEncoder.encode(param.getValue(), "UTF-8"));
+    private String getBaiduLanguageCode(String language) {
+        if (language == null) return "en";
+        switch (language.toLowerCase()) {
+            case "zh": return "zh";
+            case "en": return "en";
+            case "ja": return "jp";
+            case "ko": return "kor";
+            case "fr": return "fra";
+            case "de": return "de";
+            case "es": return "spa";
+            case "ru": return "ru";
+            case "eng": return "en";
+            case "chi_sim": return "zh";
+            case "chi_tra": return "cht";
+            case "jpn": return "jp";
+            case "kor": return "kor";
+            case "fra": return "fra";
+            case "deu": return "de";
+            case "rus": return "ru";
+            case "spa": return "spa";
+            case "ita": return "it";
+            case "por": return "pt";
+            case "vie": return "vie";
+            case "tur": return "tr";
+            case "tha": return "th";
+            case "ara": return "ara";
+            default: return "en";
         }
-
-        URL url = new URL(BAIDU_TRANSLATE_API_URL);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setDoInput(true);
-        conn.setUseCaches(false);
-        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-        conn.setRequestProperty("Content-Length", String.valueOf(postData.length()));
-        conn.setConnectTimeout(10000); // Increased timeout to 10 seconds
-        conn.setReadTimeout(10000);
-
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(postData.toString().getBytes("UTF-8"));
-            os.flush();
-        } catch (IOException e) {
-            log.error("[translate] Error writing request to server: {}", e.getMessage());
-            throw new IOException("Error writing to server: " + e.getMessage(), e);
-        }
-
-        int responseCode = conn.getResponseCode();
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            String errorMessage = "HTTP error code: " + responseCode;
-            try {
-                // Try to read error response
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "UTF-8"))) {
-                    StringBuilder errorResponse = new StringBuilder();
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        errorResponse.append(line);
-                    }
-                    if (errorResponse.length() > 0) {
-                        errorMessage += " - Response: " + errorResponse.toString();
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("[translate] Could not read error response: {}", e.getMessage());
-            }
-            log.error("[translate] {}", errorMessage);
-            throw new IOException(errorMessage);
-        }
-
-        StringBuilder response = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                response.append(line);
-            }
-        }
-
-        String responseString = response.toString().trim();
-        log.info("[translate] Baidu API response: {}", responseString);
-
-        if (responseString.isEmpty()) {
-            throw new IOException("Empty response from translation API");
-        }
-
-        return responseString;
     }
-} 
+}

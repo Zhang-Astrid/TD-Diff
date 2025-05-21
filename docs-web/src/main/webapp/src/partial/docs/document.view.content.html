@@ -110,6 +110,12 @@
                     {{ 'document.view.content.reprocess_file' | translate }}
                   </a>
                 </li>
+                <li>
+                  <a href ng-click="translateFile(file)">
+                    <span class="fas fa-language"></span>
+                    {{ 'document.view.content.translate_file' | translate }}
+                  </a>
+                </li>
                 <li role="separator" class="divider"></li>
                 <li>
                   <a href ngf-select
@@ -200,6 +206,12 @@
               <a href ng-click="processFile(file)">
                 <span class="fas fa-eye"></span>
                 {{ 'document.view.content.reprocess_file' | translate }}
+              </a>
+            </li>
+            <li>
+              <a href ng-click="translateFile(file)">
+                <span class="fas fa-language"></span>
+                {{ 'document.view.content.translate_file' | translate }}
               </a>
             </li>
             <li role="separator" class="divider"></li>

@@ -2,14 +2,14 @@
   "login": {
     "username": "用户名",
     "password": "密码",
+    "register": "注册",
+    "no_account": "没有账号？点击注册",
     "validation_code_required": "请输入验证码",
     "validation_code_title": "您的帐号已经激活了双身份验证. 请输入您配置手机app的提供的验证码.",
     "validation_code": "验证码",
     "remember_me": "记住我",
     "submit": "登录",
     "login_as_guest": "以游客身份登录",
-    "register": "注册",
-    "no_account": "没有账号？点击注册",
     "login_failed_title": "登录失败",
     "login_failed_message": "用户名或密码不正确",
     "password_lost_btn": "密码丢失？",
@@ -17,6 +17,25 @@
     "password_lost_sent_message": "重置密码的邮件已经发送至<strong>{{ username }}</strong>",
     "password_lost_error_title": "密码重置出错",
     "password_lost_error_message": "无法发送密码重置邮件，请联系您的管理员进行手动重置"
+  },
+  "register": {
+    "title": "用户注册",
+    "username": "用户名",
+    "password": "密码",
+    "email": "电子邮箱",
+    "storageQuota": "存储限额 (MB)",
+    "submit": "注册",
+    "login": "登录",
+    "success_title": "注册成功",
+    "success_message": "您的注册申请已提交成功，请等待管理员审核。",
+    "error_title": "注册失败",
+    "error_message": "注册失败，请稍后重试。",
+    "error_username_exists": "该用户名已被占用，请选择其他用户名。"
+  },
+  "request": {
+    "username": "用户名",
+    "email": "电子邮箱",
+    "createDate": "创建时间"
   },
   "passwordlost": {
     "title": "丢失密码",
@@ -28,19 +47,6 @@
     "submit": "更改我的密码",
     "error_title": "密码更改出错",
     "error_message": "您的密码恢复请求已过期，请在登录页面上提交新的请求"
-  },
-  "register": {
-    "title": "用户注册",
-    "username": "用户名",
-    "password": "密码",
-    "email": "电子邮箱",
-    "storageQuota": "存储限额 (MB)",
-    "submit": "注册",
-    "success_title": "注册成功",
-    "success_message": "您的注册申请已提交成功，请等待管理员审核。",
-    "error_title": "注册失败",
-    "error_message": "注册失败，请稍后重试。",
-    "error_username_exists": "该用户名已被占用，请选择其他用户名。"
   },
   "index": {
     "toggle_navigation": "切换导航",
@@ -114,14 +120,23 @@
       "workflow_validated_message": "工作流程步骤已成功验证。",
       "content": {
         "content": "内容",
-        "delete_file_title": "删除文档",
-        "delete_file_message": "您是否确认删除此文档?",
+        "delete_file_title": "删除文件",
+        "delete_file_message": "您是否确认删除此文件?",
         "upload_pending": "等待中...",
         "upload_progress": "上传中...",
         "upload_error": "上传失败",
         "upload_error_quota": "已达到您的限额",
         "drop_zone": "将文件拖放至此处上传",
-        "add_files": "添加文件"
+        "add_files": "添加文件",
+        "file_processing_indicator": "此文件正在处理中，处理完成前无法搜索。",
+        "reprocess_file": "重新处理此文件",
+        "upload_new_version": "上传新版本",
+        "open_versions": "显示版本历史",
+        "translate_file": "翻译文件",
+        "display_mode_list": "列表视图",
+        "display_mode_grid": "网格视图",
+        "translate_error_title": "翻译失败",
+        "translate_error_message": "文件翻译时发生错误，请重试。"
       },
       "workflow": {
         "workflow": "工作流程",
@@ -193,11 +208,9 @@
       "message": "如果您想多次共享同一文档，请将共享命名.",
       "submit": "共享"
     },
-    "translation": {
-      "select_language": "选择目标语言",
-      "translate": "翻译",
-      "result": "翻译结果",
-      "failed": "翻译失败，请重试"
+    "translate": {
+      "title": "翻译文档",
+      "target_language": "目标语言"
     }
   },
   "file": {
@@ -244,19 +257,7 @@
       "related_links": "相关链接",
       "document_created": "文档由 {{ username }} 创建",
       "edit_user": "编辑 {{ username }} 用户"
-    },
-    "registration_requests": "注册申请管理",
-    "username": "用户名",
-    "email": "邮箱",
-    "create_date": "创建日期",
-    "action": "操作",
-    "approve": "通过",
-    "reject": "拒绝",
-    "no_registration_requests": "暂无待审核的注册申请。",
-    "approve_confirm_title": "通过注册",
-    "approve_confirm_message": "确定要通过 {{ username }} 的注册申请吗？",
-    "reject_confirm_title": "拒绝注册",
-    "reject_confirm_message": "确定要拒绝 {{ username }} 的注册申请吗？"
+    }
   },
   "usergroup": {
     "search_groups": "搜索群组",
@@ -285,6 +286,10 @@
       "add_user": "添加用户",
       "username": "用户名",
       "create_date": "创建日期",
+      "action": "操作",
+      "approve": "注册通过",
+      "reject": "注册驳回",
+      "email": "邮箱",
       "totp_enabled": "为该帐号启用双身份认证",
       "edit": {
         "delete_user_title": "删除用户",

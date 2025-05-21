@@ -14,46 +14,6 @@
   background-color: #24292e;
 }
 
-// 注册按钮样式
-.btn-register-nav {
-  color: #fff !important;
-  background-color: #5cb85c !important;
-  padding: 5px 10px !important;
-  margin: 10px 15px !important;
-  border-radius: 4px !important;
-  display: block !important;
-  
-  &:hover {
-    background-color: #449d44 !important;
-  }
-}
-
-// 这样会强制显示注册按钮，覆盖任何可能隐藏它的样式
-.navbar-right a[href="#/register"],
-.btn-success,
-a[href="#/register"],
-.navbar-right .btn-register-nav {
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-// 恢复下面样式被删除的代码，撤销行间距和布局压缩的更改
-.login-box .btn-success {
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  background-color: #5cb85c !important;
-  border-color: #4cae4c !important;
-  color: white !important;
-  font-weight: bold;
-    
-  &:hover {
-    background-color: #449d44 !important;
-    border-color: #398439 !important;
-  }
-}
-
 // Selected table line
 .table tr {
   &.active {
@@ -610,27 +570,6 @@ input[readonly].share-link {
   .img-responsive {
     margin-bottom: 30px;
   }
-
-  .btn-success {
-    display: inline-block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    background-color: #5cb85c !important;
-    border-color: #4cae4c !important;
-    color: white !important;
-    font-weight: bold;
-    
-    &:hover {
-      background-color: #449d44 !important;
-      border-color: #398439 !important;
-    }
-  }
-  
-  .text-right {
-    text-align: right !important;
-    display: block !important;
-    visibility: visible !important;
-  }
 }
 
 /* Styling for the ngProgress itself */
@@ -811,28 +750,4 @@ input[readonly].share-link {
   width: 0;
   padding-left: 0;
   padding-right: 0;
-}
-
-// 移除布局压缩相关样式
-#wrap {
-  width: auto;
-  height: auto;
-  min-height: auto;
-}
-
-#wrap .container {
-  width: auto;
-}
-
-// 修复bootstrap row和column样式
-.row {
-  margin-left: -15px;
-  margin-right: -15px;
-}
-
-[class*="col-"] {
-  position: relative;
-  min-height: 1px;
-  padding-left: 15px;
-  padding-right: 15px;
 }

@@ -209,6 +209,40 @@ angular.module('docs').controller('DocumentViewContent', function ($scope, $root
     });
   };
 
+  $scope.translateFile = function(file) {
+    var modalInstance = $uibModal.open({
+      templateUrl: 'partial/docs/document.translate.html',
+      controller: 'DocumentTranslate',
+      resolve: {
+        file: function() {
+          return file;
+        }
+      }
+    });
+  
+    modalInstance.result.then(function(targetLanguage) {
+      var payload = { targetLanguage: targetLanguage };
+  
+      console.log('Sending translation request:', payload);
+  
+      $http({
+        method: 'POST',
+        url: '../api/file/' + file.id + '/translate',
+        headers: { 'Content-Type': 'application/json' },
+        data: payload
+      }).then(function(response) {
+        console.log('Translation response:', response.data);
+        $scope.loadFiles();
+      }, function(error) {
+        console.error('Translation error:', error);
+        var title = $translate.instant('document.view.content.translate_error_title');
+        var msg = $translate.instant('document.view.content.translate_error_message');
+        var btns = [{ result: 'ok', label: $translate.instant('ok'), cssClass: 'btn-primary' }];
+        $dialog.messageBox(title, msg, btns);
+      });
+    });
+  };  
+
   /**
    * Open versions history.
    */

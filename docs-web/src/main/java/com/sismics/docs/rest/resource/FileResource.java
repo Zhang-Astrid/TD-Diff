@@ -18,6 +18,7 @@ import com.sismics.docs.core.model.jpa.User;
 import com.sismics.docs.core.util.DirectoryUtil;
 import com.sismics.docs.core.util.EncryptionUtil;
 import com.sismics.docs.core.util.FileUtil;
+import com.sismics.docs.core.service.TranslationService;
 import com.sismics.rest.exception.ClientException;
 import com.sismics.rest.exception.ForbiddenClientException;
 import com.sismics.rest.exception.ServerException;
@@ -49,6 +50,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -807,6 +809,49 @@ public class FileResource extends BaseResource {
             if (!aclDao.checkPermission(file.getDocumentId(), PermType.READ, getTargetIdList(shareId))) {
                 throw new ForbiddenClientException();
             }
+        }
+    }
+
+    /**
+     * Translate a file.
+     *
+     * @api {post} /file/:id/translate Translate a file
+     * @apiName PostFileTranslate
+     * @apiGroup File
+     * @apiParam {String} id File ID
+     * @apiParam {String} targetLanguage Target language
+     * @apiSuccess {Object} file Translated file
+     * @apiError (client) ForbiddenError Access denied
+     * @apiError (client) ValidationError Validation error
+     * @apiPermission user
+     * @apiVersion 1.7.0
+     *
+     * @param id File ID
+     * @param json JSON request body
+     * @return Response
+     */
+    @POST
+    @Path("{id: [a-z0-9\\-]+}/translate")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response translate(
+            @PathParam("id") String id,
+            Map<String, Object> json) {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+
+        String targetLanguage = (String) json.get("targetLanguage");
+        ValidationUtil.validateRequired(targetLanguage, "targetLanguage");
+
+        // Translate the file
+        TranslationService translationService = new TranslationService();
+        try {
+            File translatedFile = translationService.translateFile(id, targetLanguage, principal.getId());
+            return Response.ok(RestUtil.fileToJsonObjectBuilder(translatedFile).build()).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build();
+        } catch (Exception e) {
+            return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error translating file: " + e.getMessage()).build();
         }
     }
 }

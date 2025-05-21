@@ -164,19 +164,4 @@ angular.module('docs').controller('DocumentView', function ($scope, $rootScope, 
       }
     });
   };
-
-  /**
-   * A1
-   */
-  $scope.translateDocument = function() {
-    $uibModal.open({
-      templateUrl: 'partial/docs/document.translate.html',
-      controller: 'DocumentModalTranslate',
-      resolve: {
-        document: function() {
-          return $scope.document;
-        }
-      }
-    });
-  };
 });

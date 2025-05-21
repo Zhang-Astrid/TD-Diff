@@ -3,43 +3,13 @@
 /**
  * Login controller.
  */
-angular.module('docs').controller('Login', function(Restangular, $scope, $rootScope, $state, $stateParams, $dialog, User, $translate, $uibModal, $window, $timeout) {
+angular.module('docs').controller('Login', function(Restangular, $scope, $rootScope, $state, $stateParams, $dialog, User, $translate, $uibModal) {
   $scope.codeRequired = false;
-  
-  // 跟踪页面加载是否完成
-  $scope.pageLoaded = false;
-  $timeout(function() {
-    $scope.pageLoaded = true;
-    console.log("Login page loaded successfully");
-  }, 500);
 
   // Get the app configuration
   Restangular.one('app').get().then(function(data) {
     $rootScope.app = data;
   });
-
-  $scope.translate = function(key, params) {
-    return $translate.instant(key, params);
-  };
-
-  /**
-   * Go to register page.
-   */
-  $scope.goToRegister = function() {
-    console.log("Navigating to register page...");
-    try {
-      // 多种导航方式
-      $state.go('register');
-      $timeout(function() {
-        if ($state.current.name !== 'register') {
-          $window.location.href = '#/register';
-        }
-      }, 100);
-    } catch (e) {
-      console.error("Navigation error:", e);
-      $window.location.href = '#/register';
-    }
-  };
 
   // Login as guest
   $scope.loginAsGuest = function() {
@@ -49,22 +19,22 @@ angular.module('docs').controller('Login', function(Restangular, $scope, $rootSc
     };
     $scope.login();
   };
-  
+
   // Login
   $scope.login = function() {
     User.login($scope.user).then(function() {
-      // 登录成功后移除login-page类
-      angular.element('body').removeClass('login-page');
-      
       User.userInfo(true).then(function(data) {
         $rootScope.userInfo = data;
       });
-        // $state.go('document.default');
-        if($stateParams.redirectState) {
-          $state.go($stateParams.redirectState, JSON.parse($stateParams.redirectParams || '{}'));
-        } else {
-          $state.go('document.default');
-        }
+
+      if($stateParams.redirectState !== undefined && $stateParams.redirectParams !== undefined) {
+        $state.go($stateParams.redirectState, JSON.parse($stateParams.redirectParams))
+          .catch(function() {
+            $state.go('document.default');
+          });
+      } else {
+        $state.go('document.default');
+      }
     }, function(data) {
       if (data.data.type === 'ValidationCodeRequired') {
         // A TOTP validation code is required to login
@@ -104,5 +74,21 @@ angular.module('docs').controller('Login', function(Restangular, $scope, $rootSc
         $dialog.messageBox(title, msg, btns);
       });
     });
+  };
+
+  $scope.goToRegister = function() {
+    console.log("Navigating to register page...");
+    try {
+      // 多种导航方式
+      $state.go('register');
+      $timeout(function() {
+        if ($state.current.name !== 'register') {
+          $window.location.href = '#/register';
+        }
+      }, 100);
+    } catch (e) {
+      console.error("Navigation error:", e);
+      $window.location.href = '#/register';
+    }
   };
 });
